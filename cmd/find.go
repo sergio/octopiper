@@ -22,6 +22,10 @@ to quickly create a Cobra application.`,
 
 		searchTerm := args[0]
 
+		var variableSetIds []string
+
+		// Get list of project variable sets
+
 		jsondata, err := globalconfig.OctopusServer.GetJSON("projects/all")
 		if err != nil {
 			return err
@@ -32,7 +36,27 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		var variableSetIds []string
+		switch t := jsondata.(type) {
+		case []interface{}:
+			for _, s := range t {
+				variableSetIds = append(variableSetIds, s.(string))
+			}
+		default:
+			return fmt.Errorf("Unexpected json structure: %#v", jsondata)
+		}
+
+		// Get list of library variable sets
+		jsondata, err = globalconfig.OctopusServer.GetJSON("libraryvariablesets/all")
+
+		if err != nil {
+			return err
+		}
+
+		jsondata, err = jsonfilter.Query("[].VariableSetId", jsondata)
+		if err != nil {
+			return err
+		}
+
 		switch t := jsondata.(type) {
 		case []interface{}:
 			for _, s := range t {
