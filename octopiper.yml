@@ -1,0 +1,3 @@
+OctopusServer:
+  ApiKey: YOUR-API-KEY-VALUE-HERE
+  BaseUrl: https://octopus.reachcore.net
