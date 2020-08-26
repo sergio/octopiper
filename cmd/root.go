@@ -15,12 +15,16 @@ import (
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
+var (
+	cfgFile string
 
-var globalconfig cli.Config
+	// Unmarshalled configuration
+	globalconfig cli.Config
+)
 
 // OctopusClient //
 func OctopusClient() *octopusclient.OctopusClient {
+
 	client := &octopusclient.OctopusClient{
 		LocalCache: &sqlitekvs.KVSCache{
 			FilePath: globalconfig.LocalCache.FilePath,

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"octopiper/pkg/cli"
 	"octopiper/pkg/jsonfilter"
+	"octopiper/pkg/octopus"
 
 	"github.com/spf13/cobra"
 )
@@ -21,71 +22,80 @@ to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		searchTerm := args[0]
+		results, err := find(searchTerm)
+		cli.WriteOutput(results)
+		return err
 
-		var variableSetIds []string
-
-		// Get list of project variable sets
-
-		jsondata, err := OctopusClient().GetJSON("projects/all")
-		if err != nil {
-			return err
-		}
-
-		jsondata, err = jsonfilter.Query("[].VariableSetId", jsondata)
-		if err != nil {
-			return err
-		}
-
-		switch t := jsondata.(type) {
-		case []interface{}:
-			for _, s := range t {
-				variableSetIds = append(variableSetIds, s.(string))
-			}
-		default:
-			return fmt.Errorf("Unexpected json structure: %#v", jsondata)
-		}
-
-		// Get list of library variable sets
-		jsondata, err = OctopusClient().Get("libraryvariablesets/all")
-
-		if err != nil {
-			return err
-		}
-
-		jsondata, err = jsonfilter.Query("[].VariableSetId", jsondata)
-		if err != nil {
-			return err
-		}
-
-		switch t := jsondata.(type) {
-		case []interface{}:
-			for _, s := range t {
-				variableSetIds = append(variableSetIds, s.(string))
-			}
-		default:
-			return fmt.Errorf("Unexpected json structure: %#v", jsondata)
-		}
-
-		var searchResults []interface{}
-		for _, setID := range variableSetIds {
-			jsondata, err = OctopusClient().GetJSON(fmt.Sprintf("variables/%s", setID))
-			if err != nil {
-				return err
-			}
-			expression := fmt.Sprintf("Variables[? Value != null]|[?contains(Value, `\"%s\"`)].{VariableSetId: `\"%s\"`,Name: Name, Scope: Scope, Value: Value}", searchTerm, setID)
-			jsondata, err = jsonfilter.Query(expression, jsondata)
-			if err != nil {
-				return err
-			}
-			items := jsondata.([]interface{})
-			if items != nil {
-				searchResults = append(searchResults, items...)
-			}
-		}
-		cli.WriteOutput(searchResults)
-
-		return nil
 	},
+}
+
+func find(searchTerm string) ([]octopus.Variable, error) {
+	// In-memory octopus information model
+	octopusModel := octopus.NewModel()
+
+	var variableSetIds []string
+
+	// Get list of project variable sets
+
+	jsondata, err := OctopusClient().GetJSON("projects/all")
+	if err != nil {
+		return nil, err
+	}
+
+	jsondata, err = jsonfilter.Query("[].VariableSetId", jsondata)
+	if err != nil {
+		return nil, err
+	}
+
+	switch t := jsondata.(type) {
+	case []interface{}:
+		for _, s := range t {
+			variableSetIds = append(variableSetIds, s.(string))
+		}
+	default:
+		return nil, fmt.Errorf("Unexpected json structure: %#v", jsondata)
+	}
+
+	// Get list of library variable sets
+	jsondata, err = OctopusClient().GetJSON("libraryvariablesets/all")
+
+	if err != nil {
+		return nil, err
+	}
+
+	jsondata, err = jsonfilter.Query("[].VariableSetId", jsondata)
+	if err != nil {
+		return nil, err
+	}
+
+	switch t := jsondata.(type) {
+	case []interface{}:
+		for _, s := range t {
+			variableSetIds = append(variableSetIds, s.(string))
+		}
+	default:
+		return nil, fmt.Errorf("Unexpected json structure: %#v", jsondata)
+	}
+
+	// Download all variable sets
+	var searchResults []octopus.Variable
+	for _, setID := range variableSetIds {
+		jsonString, err := OctopusClient().Get(fmt.Sprintf("variables/%s", setID))
+		if err != nil {
+			return nil, err
+		}
+
+		// add to in-memory information model
+		octopusModel.Add(jsonString)
+	}
+
+	// perform search for term
+	searchResults, err = octopusModel.FindVariables(searchTerm)
+	if err != nil {
+		return nil, err
+	}
+
+	return searchResults, nil
 }
 
 func init() {
