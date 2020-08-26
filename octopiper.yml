@@ -1,3 +1,6 @@
 OctopusServer:
   ApiKey: YOUR-API-KEY-VALUE-HERE
   BaseUrl: https://octopus.reachcore.net
+LocalCache:
+  FilePath: ./cache.db
+  TTLMinutes: 5

@@ -3,7 +3,11 @@ package cmd
 import (
 	"fmt"
 	"octopiper/pkg/cli"
+	"octopiper/pkg/octopusapi"
+	"octopiper/pkg/octopusclient"
+	"octopiper/pkg/sqlitekvs"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -14,6 +18,21 @@ import (
 var cfgFile string
 
 var globalconfig cli.Config
+
+// OctopusClient //
+func OctopusClient() *octopusclient.OctopusClient {
+	client := &octopusclient.OctopusClient{
+		LocalCache: &sqlitekvs.KVSCache{
+			FilePath: globalconfig.LocalCache.FilePath,
+			TTL:      time.Duration(globalconfig.LocalCache.TTLMinutes) * time.Minute,
+		},
+		OctopusServer: &octopusapi.OctopusAPI{
+			BaseURL: globalconfig.OctopusServer.BaseURL,
+			APIKey:  globalconfig.OctopusServer.APIKey,
+		},
+	}
+	return client
+}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{

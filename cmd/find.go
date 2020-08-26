@@ -26,7 +26,7 @@ to quickly create a Cobra application.`,
 
 		// Get list of project variable sets
 
-		jsondata, err := globalconfig.OctopusServer.GetJSON("projects/all")
+		jsondata, err := OctopusClient().GetJSON("projects/all")
 		if err != nil {
 			return err
 		}
@@ -46,7 +46,7 @@ to quickly create a Cobra application.`,
 		}
 
 		// Get list of library variable sets
-		jsondata, err = globalconfig.OctopusServer.GetJSON("libraryvariablesets/all")
+		jsondata, err = OctopusClient().Get("libraryvariablesets/all")
 
 		if err != nil {
 			return err
@@ -68,11 +68,11 @@ to quickly create a Cobra application.`,
 
 		var searchResults []interface{}
 		for _, setID := range variableSetIds {
-			jsondata, err = globalconfig.OctopusServer.GetJSON(fmt.Sprintf("variables/%s", setID))
+			jsondata, err = OctopusClient().GetJSON(fmt.Sprintf("variables/%s", setID))
 			if err != nil {
 				return err
 			}
-			expression := fmt.Sprintf("Variables[? Value != null]|[?contains(Value, `\"%s\"`)].{VariableSetId: `\"%s\"`,Name: Name, Value: Value}", searchTerm, setID)
+			expression := fmt.Sprintf("Variables[? Value != null]|[?contains(Value, `\"%s\"`)].{VariableSetId: `\"%s\"`,Name: Name, Scope: Scope, Value: Value}", searchTerm, setID)
 			jsondata, err = jsonfilter.Query(expression, jsondata)
 			if err != nil {
 				return err

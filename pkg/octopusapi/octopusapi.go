@@ -2,17 +2,41 @@ package octopusapi
 
 import (
 	"fmt"
-	"octopiper/pkg/rest"
+	"io/ioutil"
+	"net/http"
 )
 
-// Server is a struct
-type Server struct {
+// OctopusAPI :
+type OctopusAPI struct {
 	BaseURL string
 	APIKey  string
 }
 
-// GetJSON is a func
-func (octopusServer *Server) GetJSON(resource string) (interface{}, error) {
-	endpoint := fmt.Sprintf("%s/api/%s?apikey=%s", octopusServer.BaseURL, resource, octopusServer.APIKey)
-	return rest.GetJSON(endpoint)
+// Get :
+func (c OctopusAPI) Get(resource string) (string, error) {
+
+	url := fmt.Sprintf("%s/api/%s", c.BaseURL, resource)
+	request, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return "", err
+	}
+	request.Header.Set("X-Octopus-ApiKey", c.APIKey)
+
+	client := &http.Client{}
+	resp, err := client.Do(request)
+	if err != nil {
+		return "", fmt.Errorf("error invoking octopus API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	content, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("error reading octopus response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("expected 200 OK, but was '%s': %s", resp.Status, content)
+	}
+
+	return string(content), nil
 }

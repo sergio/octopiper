@@ -20,7 +20,7 @@ to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		resource := args[0]
-		jsondata, err := globalconfig.OctopusServer.GetJSON(resource)
+		jsondata, err := OctopusClient().GetJSON(resource)
 		if err != nil {
 			return err
 		}
