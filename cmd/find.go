@@ -10,16 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// findCmd represents the findVariables command
 var findCmd = &cobra.Command{
 	Use:   "find",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Find octopus variables by value in any variable set.",
+	Long:  `Finds and ouptupts octopus variables containing the specified text.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		searchTerm := args[0]
@@ -47,7 +41,7 @@ func find(searchTerm string) (interface{}, error) {
 	var variableSets []variableSetSummary
 
 	// Get list of project variable sets
-	jsontext, err := OctopusClient().Get("projects/all")
+	jsontext, err := octopusClient().Get("projects/all")
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +55,7 @@ func find(searchTerm string) (interface{}, error) {
 	variableSets = append(variableSets, summaries...)
 
 	// Get list of library variable sets
-	jsontext, err = OctopusClient().Get("libraryvariablesets/all")
+	jsontext, err = octopusClient().Get("libraryvariablesets/all")
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +70,7 @@ func find(searchTerm string) (interface{}, error) {
 	// Download all variable sets
 	var searchResults []octopus.Variable
 	for _, summary := range variableSets {
-		jsonString, err := OctopusClient().Get(fmt.Sprintf("variables/%s", summary.VariableSetID))
+		jsonString, err := octopusClient().Get(fmt.Sprintf("variables/%s", summary.VariableSetID))
 		if err != nil {
 			return nil, err
 		}
@@ -106,14 +100,4 @@ func find(searchTerm string) (interface{}, error) {
 
 func init() {
 	rootCmd.AddCommand(findCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// findCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// findCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
