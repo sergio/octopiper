@@ -8,10 +8,12 @@ import (
 
 // Variable :
 type Variable struct {
-	ID    string
-	Name  string
-	Scope map[string][]string
-	Value string
+	ID              string
+	Name            string
+	Scope           map[string][]string
+	Value           string
+	VariableSetID   string
+	VariableSetName string
 }
 
 // Entry :
@@ -25,9 +27,10 @@ type Namespace []Entry
 
 // VariableSet :
 type VariableSet struct {
-	ScopeValues map[string]Namespace
-	Variables   []Variable
-	OwnerID     string
+	VariableSetName string
+	ScopeValues     map[string]Namespace
+	Variables       []Variable
+	OwnerID         string
 }
 
 // Model :
@@ -43,13 +46,14 @@ func NewModel() *Model {
 	return m
 }
 
-// Add :
-func (m *Model) Add(jsonString string) error {
+// AddVariableSet :
+func (m *Model) AddVariableSet(variableSetName string, jsonString string) error {
 	var vs VariableSet
 	err := json.Unmarshal([]byte(jsonString), &vs)
 	if err != nil {
 		return fmt.Errorf("error unmarshaling json as VariableSet %w", err)
 	}
+	vs.VariableSetName = variableSetName
 	m.VariableSets = append(m.VariableSets, vs)
 	for category, ns := range vs.ScopeValues {
 		if m.ScopeDictionaries[category] == nil {
@@ -68,6 +72,8 @@ func (m *Model) FindVariables(searchTerm string) ([]Variable, error) {
 
 	for _, vs := range m.VariableSets {
 		for _, v := range vs.Variables {
+			v.VariableSetID = vs.OwnerID
+			v.VariableSetName = vs.VariableSetName
 			if strings.Contains(v.Value, searchTerm) {
 				results = append(results, m.translateScope(v))
 			}

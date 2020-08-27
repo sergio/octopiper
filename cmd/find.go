@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"octopiper/pkg/cli"
-	"octopiper/pkg/jsonfilter"
 	"octopiper/pkg/octopus"
 
 	"github.com/spf13/cobra"
@@ -29,64 +29,54 @@ to quickly create a Cobra application.`,
 	},
 }
 
+type variableSetSummary struct {
+	VariableSetID string `json:"VariableSetId"`
+	Name          string `json:"Name"`
+}
+
 func find(searchTerm string) ([]octopus.Variable, error) {
 	// In-memory octopus information model
 	octopusModel := octopus.NewModel()
 
-	var variableSetIds []string
+	var variableSets []variableSetSummary
 
 	// Get list of project variable sets
-
-	jsondata, err := OctopusClient().GetJSON("projects/all")
+	jsontext, err := OctopusClient().Get("projects/all")
 	if err != nil {
 		return nil, err
 	}
 
-	jsondata, err = jsonfilter.Query("[].VariableSetId", jsondata)
+	var summaries []variableSetSummary
+	err = json.Unmarshal([]byte(jsontext), &summaries)
 	if err != nil {
 		return nil, err
 	}
 
-	switch t := jsondata.(type) {
-	case []interface{}:
-		for _, s := range t {
-			variableSetIds = append(variableSetIds, s.(string))
-		}
-	default:
-		return nil, fmt.Errorf("Unexpected json structure: %#v", jsondata)
-	}
+	variableSets = append(variableSets, summaries...)
 
 	// Get list of library variable sets
-	jsondata, err = OctopusClient().GetJSON("libraryvariablesets/all")
-
+	jsontext, err = OctopusClient().Get("libraryvariablesets/all")
 	if err != nil {
 		return nil, err
 	}
 
-	jsondata, err = jsonfilter.Query("[].VariableSetId", jsondata)
+	err = json.Unmarshal([]byte(jsontext), &summaries)
 	if err != nil {
 		return nil, err
 	}
 
-	switch t := jsondata.(type) {
-	case []interface{}:
-		for _, s := range t {
-			variableSetIds = append(variableSetIds, s.(string))
-		}
-	default:
-		return nil, fmt.Errorf("Unexpected json structure: %#v", jsondata)
-	}
+	variableSets = append(variableSets, summaries...)
 
 	// Download all variable sets
 	var searchResults []octopus.Variable
-	for _, setID := range variableSetIds {
-		jsonString, err := OctopusClient().Get(fmt.Sprintf("variables/%s", setID))
+	for _, summary := range variableSets {
+		jsonString, err := OctopusClient().Get(fmt.Sprintf("variables/%s", summary.VariableSetID))
 		if err != nil {
 			return nil, err
 		}
 
 		// add to in-memory information model
-		octopusModel.Add(jsonString)
+		octopusModel.AddVariableSet(summary.Name, jsonString)
 	}
 
 	// perform search for term
