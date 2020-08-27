@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"octopiper/pkg/cli"
+	"octopiper/pkg/jsonfilter"
 	"octopiper/pkg/octopus"
 
 	"github.com/spf13/cobra"
@@ -22,8 +23,13 @@ to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 
 		searchTerm := args[0]
-		results, err := find(searchTerm)
-		cli.WriteOutput(results)
+		jsondata, err := find(searchTerm)
+		jsondata, err = jsonfilter.Query(query, jsondata)
+		if err != nil {
+			return err
+		}
+
+		cli.WriteOutput(jsondata)
 		return err
 
 	},
@@ -34,7 +40,7 @@ type variableSetSummary struct {
 	Name          string `json:"Name"`
 }
 
-func find(searchTerm string) ([]octopus.Variable, error) {
+func find(searchTerm string) (interface{}, error) {
 	// In-memory octopus information model
 	octopusModel := octopus.NewModel()
 
@@ -85,7 +91,17 @@ func find(searchTerm string) ([]octopus.Variable, error) {
 		return nil, err
 	}
 
-	return searchResults, nil
+	jsonbytes, err := json.Marshal(searchResults)
+	if err != nil {
+		return nil, err
+	}
+	var jsondata interface{}
+	err = json.Unmarshal(jsonbytes, &jsondata)
+	if err != nil {
+		return nil, err
+	}
+
+	return jsondata, nil
 }
 
 func init() {

@@ -25,7 +25,7 @@ to quickly create a Cobra application.`,
 			return err
 		}
 
-		jsondata, err = jsonfilter.Query(*query, jsondata)
+		jsondata, err = jsonfilter.Query(query, jsondata)
 		if err != nil {
 			return err
 		}
@@ -36,8 +36,6 @@ to quickly create a Cobra application.`,
 	},
 }
 
-var query *string
-
 func init() {
 	rootCmd.AddCommand(getCmd)
 
@@ -46,8 +44,6 @@ func init() {
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
 	// getCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	query = getCmd.PersistentFlags().StringP("query", "q", "", "JMESPath expression")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
